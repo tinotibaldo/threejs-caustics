@@ -3,9 +3,10 @@ uniform sampler2D caustics;
 varying float lightIntensity;
 varying vec3 lightPosition;
 
-const float bias = 0.001;
+const float bias = 0.0001;
+const float caustics_base = 10.5;
 
-const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
+const vec3 underwaterColor = vec3(0.05, 0.05, 0.05);
 
 const vec2 resolution = vec2(1024.);
 
@@ -23,16 +24,16 @@ float blur(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
 
 void main() {
   // Set the frag color
-  float computedLightIntensity = 0.5;
+  float computedLightIntensity = 1.0;
 
-  computedLightIntensity += 0.2 * lightIntensity;
+  computedLightIntensity += 0.25 * lightIntensity;
 
   // Retrieve caustics depth information
   float causticsDepth = texture2D(caustics, lightPosition.xy).w;
 
   if (causticsDepth > lightPosition.z - bias) {
     // Percentage Close Filtering
-    float causticsIntensity = 0.5 * (
+    float causticsIntensity = caustics_base * (
       blur(caustics, lightPosition.xy, resolution, vec2(0., 0.5)) +
       blur(caustics, lightPosition.xy, resolution, vec2(0.5, 0.))
     );

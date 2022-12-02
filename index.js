@@ -1,11 +1,15 @@
 const stats = new Stats();
 stats.showPanel(0);
 document.body.appendChild(stats.domElement);
+stats.domElement.style.position = 'absolute'
+stats.domElement.style.top= '0px'
 
 const canvas = document.getElementById('canvas');
 
 const width = canvas.width;
 const height = canvas.height;
+
+const wh =1// width/height;
 
 // Colors
 const black = new THREE.Color('black');
@@ -25,7 +29,7 @@ function loadFile(filename) {
 const waterPosition = new THREE.Vector3(0, 0, 0.8);
 const near = 0.;
 const far = 2.;
-const waterSize = 512;
+const waterSize = {x:width, y:height};
 
 // Create directional light
 // TODO Replace this by a THREE.DirectionalLight and use the provided matrix (check that it's an Orthographic matrix as expected)
@@ -37,8 +41,7 @@ lightCamera.lookAt(0, 0, 0);
 // Create Renderer
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, width / height, 0.01, 100);
-camera.position.set(-1.5, -1.5, 1);
-camera.up.set(0, 0, 1);
+camera.position.set(0, 0, 2);
 scene.add(camera);
 
 const renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true, alpha: true});
@@ -51,13 +54,15 @@ const controls = new THREE.OrbitControls(
   canvas
 );
 
-controls.target = waterPosition;
+//controls.target = waterPosition;
 
-controls.minPolarAngle = 0;
-controls.maxPolarAngle = Math.PI / 2. - 0.1;
+//controls.minPolarAngle = 0;
+//controls.maxPolarAngle = Math.PI / 2. - 0.1;
 
-controls.minDistance = 1.5;
-controls.maxDistance = 3.;
+//controls.minDistance = 1.5;
+//controls.maxDistance = 3.;
+controls.enabled = true;
+//controls.enabled = false;
 
 // Target for computing the water refraction
 const temporaryRenderTarget = new THREE.WebGLRenderTarget(width, height);
@@ -75,7 +80,7 @@ for (let vertex of targetgeometry.vertices) {
 const targetmesh = new THREE.Mesh(targetgeometry);
 
 // Geometries
-const waterGeometry = new THREE.PlaneBufferGeometry(2, 2, waterSize, waterSize);
+const waterGeometry = new THREE.PlaneBufferGeometry(2 * wh, 2, waterSize.x, waterSize.y);
 const vertices = new Float32Array([
   -1, -1, -1,
   -1, -1, 1,
@@ -116,58 +121,11 @@ const indices = new Uint32Array([
 ]);
 
 // Environment
-const floorGeometry = new THREE.PlaneBufferGeometry(100, 100, 1, 1);
+const floorGeometry = new THREE.PlaneBufferGeometry(100 * wh, 100, 1, 1);
 
 const objLoader = new THREE.OBJLoader();
-let shark;
-const sharkLoaded = new Promise((resolve) => {
-  objLoader.load('assets/WhiteShark.obj', (sharkGeometry) => {
-    sharkGeometry = sharkGeometry.children[0].geometry;
-    sharkGeometry.computeVertexNormals();
-    sharkGeometry.scale(0.12, 0.12, 0.12);
-    sharkGeometry.rotateX(Math.PI / 2.);
-    sharkGeometry.rotateZ(-Math.PI / 2.);
-    sharkGeometry.translate(0, 0, 0.4);
 
-    shark = sharkGeometry;
-    resolve();
-  });
-});
 
-let rock1;
-let rock2;
-const rockLoaded = new Promise((resolve) => {
-  objLoader.load('assets/rock.obj', (rockGeometry) => {
-    rockGeometry = rockGeometry.children[0].geometry;
-    rockGeometry.computeVertexNormals();
-
-    rock1 = new THREE.BufferGeometry().copy(rockGeometry);
-    rock1.scale(0.05, 0.05, 0.02);
-    rock1.translate(0.2, 0., 0.1);
-
-    rock2 = new THREE.BufferGeometry().copy(rockGeometry);
-    rock2.scale(0.05, 0.05, 0.05);
-    rock2.translate(-0.5, 0.5, 0.2);
-    rock2.rotateZ(Math.PI / 2.);
-
-    resolve();
-  });
-});
-
-let plant;
-const plantLoaded = new Promise((resolve) => {
-  objLoader.load('assets/plant.obj', (plantGeometry) => {
-    plantGeometry = plantGeometry.children[0].geometry;
-    plantGeometry.computeVertexNormals();
-
-    plant = plantGeometry;
-    plant.rotateX(Math.PI / 6.);
-    plant.scale(0.03, 0.03, 0.03);
-    plant.translate(-0.5, 0.5, 0.);
-
-    resolve();
-  });
-});
 
 // Skybox
 const cubetextureloader = new THREE.CubeTextureLoader();
@@ -178,18 +136,29 @@ const skybox = cubetextureloader.load([
   'assets/TropicalSunnyDay_pz.jpg', 'assets/TropicalSunnyDay_nz.jpg',
 ]);
 
-scene.background = skybox;
 
+const skybox1  = new THREE.EXRLoader()
+    .setDataType(THREE.FloatType)
+    .load(
+      "assets/empty_warehouse_01_2k.exr",
+      function (texture, textureData) {
+        
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+       /// scene.background = texture;
+
+ 
+      })
+scene.background = skybox;
 
 class WaterSimulation {
 
   constructor() {
     this._camera = new THREE.OrthographicCamera(0, 1, 1, 0, 0, 2000);
 
-    this._geometry = new THREE.PlaneBufferGeometry(2, 2);
+    this._geometry = new THREE.PlaneBufferGeometry(2 * wh, 2);
 
-    this._targetA = new THREE.WebGLRenderTarget(waterSize, waterSize, {type: THREE.FloatType});
-    this._targetB = new THREE.WebGLRenderTarget(waterSize, waterSize, {type: THREE.FloatType});
+    this._targetA = new THREE.WebGLRenderTarget(waterSize.x, waterSize.y, {type: THREE.FloatType});
+    this._targetB = new THREE.WebGLRenderTarget(waterSize.x, waterSize.y, {type: THREE.FloatType});
     this.target = this._targetA;
 
     const shadersPromises = [
@@ -308,7 +277,7 @@ class EnvironmentMap {
 
   constructor() {
     this.size = 1024;
-    this.target = new THREE.WebGLRenderTarget(this.size, this.size, {type: THREE.FloatType});
+    this.target = new THREE.WebGLRenderTarget(this.size * wh, this.size, {type: THREE.FloatType});
 
     const shadersPromises = [
       loadFile('shaders/environment_mapping/vertex.glsl'),
@@ -354,9 +323,9 @@ class EnvironmentMap {
 class Caustics {
 
   constructor() {
-    this.target = new THREE.WebGLRenderTarget(waterSize * 3., waterSize * 3., {type: THREE.FloatType});
+    this.target = new THREE.WebGLRenderTarget(waterSize.x * 3., waterSize.y * 3., {type: THREE.FloatType});
 
-    this._waterGeometry = new THREE.PlaneBufferGeometry(2, 2, waterSize, waterSize);
+    this._waterGeometry = new THREE.PlaneBufferGeometry(2, 2, waterSize.x, waterSize.y);
 
     const shadersPromises = [
       loadFile('shaders/caustics/water_vertex.glsl'),
@@ -524,7 +493,7 @@ function animate() {
   stats.begin();
 
   // Update the water
-  if (clock.getElapsedTime() > 0.032) {
+  if (clock.getElapsedTime() > 0.012) {
     waterSimulation.stepSimulation(renderer);
 
     const waterTexture = waterSimulation.target.texture;
@@ -572,6 +541,7 @@ function animate() {
 }
 
 function onMouseMove(event) {
+  console.log('asd')
   const rect = canvas.getBoundingClientRect();
 
   mouse.x = (event.clientX - rect.left) * 2 / width - 1;
@@ -582,7 +552,7 @@ function onMouseMove(event) {
   const intersects = raycaster.intersectObject(targetmesh);
 
   for (let intersect of intersects) {
-    waterSimulation.addDrop(renderer, intersect.point.x, intersect.point.y, 0.03, 0.02);
+    waterSimulation.addDrop(renderer, intersect.point.x, intersect.point.y, 0.01, 0.0005);
   }
 }
 
@@ -593,13 +563,10 @@ const loaded = [
   environment.loaded,
   caustics.loaded,
   debug.loaded,
-  sharkLoaded,
-  rockLoaded,
-  plantLoaded,
 ];
 
 Promise.all(loaded).then(() => {
-  const envGeometries = [floorGeometry, shark, rock1, rock2, plant];
+  const envGeometries = [floorGeometry];
 
   environmentMap.setGeometries(envGeometries);
   environment.setGeometries(envGeometries);
@@ -610,7 +577,9 @@ Promise.all(loaded).then(() => {
   caustics.setDeltaEnvTexture(1. / environmentMap.size);
 
   canvas.addEventListener('mousemove', { handleEvent: onMouseMove });
-
+  canvas.addEventListener('touchmove', { handleEvent: onMouseMove });
+  canvas.addEventListener('pointermove', { handleEvent: onMouseMove });
+  /*
   for (var i = 0; i < 5; i++) {
     waterSimulation.addDrop(
       renderer,
@@ -618,6 +587,6 @@ Promise.all(loaded).then(() => {
       0.03, (i & 1) ? 0.02 : -0.02
     );
   }
-
+  */
   animate();
 });

@@ -11,7 +11,7 @@ void main() {
   vec3 reflectedColor = textureCube(skybox, reflected).xyz;
 
   // Color coming from the environment refraction, applying chromatic aberration
-  vec3 refractedColor = vec3(1.);
+  vec3 refractedColor = vec3(0.0);
   refractedColor.r = texture2D(envMap, refractedPosition[0] * 0.5 + 0.5).r;
   refractedColor.g = texture2D(envMap, refractedPosition[1] * 0.5 + 0.5).g;
   refractedColor.b = texture2D(envMap, refractedPosition[2] * 0.5 + 0.5).b;

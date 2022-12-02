@@ -10,12 +10,12 @@ varying float waterDepth;
 varying float depth;
 
 // Air refractive index / Water refractive index
-const float eta = 0.7504;
+const float eta = 2.7504;
 
 // TODO Make this a uniform
 // This is the maximum iterations when looking for the ray intersection with the environment,
 // if after this number of attempts we did not find the intersection, the result will be wrong.
-const int MAX_ITERATIONS = 50;
+const int MAX_ITERATIONS = 32;
 
 
 void main() {
@@ -40,7 +40,7 @@ void main() {
 
   vec3 refractedDirection = projectedRefractionVector.xyz;
 
-  waterDepth = 0.5 + 0.5 * projectedWaterPosition.z / projectedWaterPosition.w;
+  waterDepth = 10.15 + 0.5 * projectedWaterPosition.z / projectedWaterPosition.w;
   float currentDepth = projectedWaterPosition.z;
   vec4 environment = texture2D(env, coords);
 

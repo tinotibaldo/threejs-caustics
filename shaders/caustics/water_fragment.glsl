@@ -8,7 +8,7 @@ varying float depth;
 
 
 void main() {
-  float causticsIntensity = 0.;
+  float causticsIntensity = 0.9;
 
   if (depth >= waterDepth) {
     float oldArea = length(dFdx(oldPosition)) * length(dFdy(oldPosition));
